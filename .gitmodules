@@ -1,0 +1,3 @@
+[submodule "mcblib"]
+	path = mcblib
+	url = https://github.com/ingeniamc/mcblib.git
