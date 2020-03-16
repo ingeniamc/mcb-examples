@@ -107,10 +107,14 @@ int main(void)
   MX_SPI1_Init();
   MX_USB_HOST_Init();
   /* USER CODE BEGIN 2 */
+    /** Initialize mcb instance */
     McbAL_Init(MCB_INST0);
     Mcb_Init(&(ptMcbInst[MCB_INST0]), MCB_BLOCKING, MCB_INST0, false, MCB_TIMEOUT);
+    HAL_Delay((uint32_t)1UL);
 
+    /** Construct mcb get info message */
     Mcb_TInfoMsg tMcbInfoMsg;
+    /** Software version */
     tMcbInfoMsg.u16Addr = 0x6E4;
     tMcbInfoMsg.eStatus = MCB_STANDBY;
     ptMcbInst[MCB_INST0].Mcb_GetInfo(&(ptMcbInst[MCB_INST0]), &(tMcbInfoMsg));
@@ -120,7 +124,9 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+    /** Construct mcb read message */
     Mcb_TMsg tMcbMsg;
+    /** Software version */
     tMcbMsg.u16Addr = 0x6E4;
     tMcbMsg.eStatus = MCB_STANDBY;
     memset((void*)tMcbMsg.u16Data, (uint16_t)0U, (MCB_MAX_DATA_SZ * sizeof(tMcbMsg.u16Data[(uint16_t)0U])));
@@ -130,6 +136,7 @@ int main(void)
     MX_USB_HOST_Process();
 
     /* USER CODE BEGIN 3 */
+    HAL_Delay((uint32_t)1UL);
     ptMcbInst[MCB_INST0].Mcb_Read(&(ptMcbInst[MCB_INST0]), &(tMcbMsg));
   }
   /* USER CODE END 3 */
