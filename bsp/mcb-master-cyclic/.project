@@ -74,9 +74,19 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>app</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
 			<name>mcblib</name>
 			<type>2</type>
 			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>app/mcb-master-cyclic.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/application/mcb-master-cyclic.c</locationURI>
 		</link>
 		<link>
 			<name>mcblib/mcb.c</name>

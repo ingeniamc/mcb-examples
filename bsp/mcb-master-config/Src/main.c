@@ -24,9 +24,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <string.h>
-#include "mcb.h"
-#include "mcb_al.h"
+#include "application.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,8 +38,6 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#define MCB_NMB_INST    (uint16_t)1U
-#define MCB_TIMEOUT     (uint32_t)500UL
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -69,8 +65,7 @@ void MX_USB_HOST_Process(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-/** Mcb instance */
-Mcb_TInst ptMcbInst[MCB_NMB_INST];
+
 /* USER CODE END 0 */
 
 /**
@@ -106,35 +101,22 @@ int main(void)
   MX_SPI1_Init();
   MX_USB_HOST_Init();
   /* USER CODE BEGIN 2 */
-    /** Initialize mcb instance */
-    McbAL_Init(MCB_INST0);
-    Mcb_Init(&(ptMcbInst[MCB_INST0]), MCB_BLOCKING, MCB_INST0, false, MCB_TIMEOUT);
-    HAL_Delay((uint32_t)1UL);
-
-    /** Construct mcb get info message */
-    Mcb_TInfoMsg tMcbInfoMsg;
-    /** Software version */
-    tMcbInfoMsg.u16Addr = 0x6E4;
-    tMcbInfoMsg.eStatus = MCB_STANDBY;
-    ptMcbInst[MCB_INST0].Mcb_GetInfo(&(ptMcbInst[MCB_INST0]), &(tMcbInfoMsg));
+    AppInit();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-    /** Construct mcb read message */
-    Mcb_TMsg tMcbMsg;
-    /** Software version */
-    tMcbMsg.u16Addr = 0x6E4;
-    tMcbMsg.eStatus = MCB_STANDBY;
-    memset((void*)tMcbMsg.u16Data, (uint16_t)0U, (MCB_MAX_DATA_SZ * sizeof(tMcbMsg.u16Data[(uint16_t)0U])));
+    AppStart();
   while (1)
   {
     /* USER CODE END WHILE */
     MX_USB_HOST_Process();
 
     /* USER CODE BEGIN 3 */
-    HAL_Delay((uint32_t)1UL);
-    ptMcbInst[MCB_INST0].Mcb_Read(&(ptMcbInst[MCB_INST0]), &(tMcbMsg));
+        if (AppLoop() != (int32_t)0L)
+        {
+            break;
+        }
   }
   /* USER CODE END 3 */
 }

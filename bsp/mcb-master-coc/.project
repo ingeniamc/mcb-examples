@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>mcb-master-config</name>
+	<name>mcb-master-coc</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -84,9 +84,9 @@
 			<locationURI>virtual:/virtual</locationURI>
 		</link>
 		<link>
-			<name>app/mcb-master-config.c</name>
+			<name>app/mcb-master-coc.c</name>
 			<type>1</type>
-			<locationURI>PARENT-2-PROJECT_LOC/application/mcb-master-config.c</locationURI>
+			<locationURI>PARENT-2-PROJECT_LOC/application/mcb-master-coc.c</locationURI>
 		</link>
 		<link>
 			<name>mcblib/mcb.c</name>
