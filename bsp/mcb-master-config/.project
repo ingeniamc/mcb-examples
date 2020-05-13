@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>mcb-master</name>
-	<comment />
+	<name>mcb-master-config</name>
+	<comment></comment>
 	<projects>
 	</projects>
 	<buildSpec>
@@ -15,7 +15,7 @@
 				</dictionary>
 				<dictionary>
 					<key>?name?</key>
-					<value />
+					<value></value>
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.append_environment</key>
@@ -23,7 +23,7 @@
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.buildArguments</key>
-					<value />
+					<value></value>
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.buildCommand</key>
@@ -72,4 +72,41 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>com.st.stm32cube.ide.mcu.MCUTSConvertedProjectNature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>mcblib</name>
+			<type>2</type>
+			<locationURI>virtual:/virtual</locationURI>
+		</link>
+		<link>
+			<name>mcblib/mcb.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/mcblib/mcb.c</locationURI>
+		</link>
+		<link>
+			<name>mcblib/mcb_al.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/common/mcb_al.c</locationURI>
+		</link>
+		<link>
+			<name>mcblib/mcb_crcccitt.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/mcblib/mcb_crcccitt.c</locationURI>
+		</link>
+		<link>
+			<name>mcblib/mcb_frame.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/mcblib/mcb_frame.c</locationURI>
+		</link>
+		<link>
+			<name>mcblib/mcb_intf.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/mcblib/mcb_intf.c</locationURI>
+		</link>
+		<link>
+			<name>mcblib/mcb_usr.c</name>
+			<type>1</type>
+			<locationURI>PARENT-2-PROJECT_LOC/mcblib/mcb_usr.c</locationURI>
+		</link>
+	</linkedResources>
 </projectDescription>
