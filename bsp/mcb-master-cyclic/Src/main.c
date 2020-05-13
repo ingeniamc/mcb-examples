@@ -47,6 +47,9 @@
 #define NO_ERROR                    (int16_t)0
 #define MCB_CURRENT_STATUS_ERROR    (int16_t)-1
 #define MCB_MAPPING_ERROR           (int16_t)-2
+
+#define MCB_TX_MAP_NMB              (uint16_t)2U
+#define MCB_RX_MAP_NMB              (uint16_t)2U
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -76,6 +79,10 @@ int16_t SetMcb0CyclicMode(void);
 /* USER CODE BEGIN 0 */
 /** Mcb instance */
 Mcb_TInst ptMcbInst[MCB_NMB_INST];
+
+void* ppTxDatPoint[MCB_TX_MAP_NMB];
+void* ppRxDatPoint[MCB_RX_MAP_NMB];
+
 /* USER CODE END 0 */
 
 /**
@@ -130,18 +137,32 @@ int main(void)
     /** Set mapping and move MCB to cyclic state */
     int16_t i16CycSt = SetMcb0CyclicMode();
 
+    if (i16CycSt != NO_ERROR)
+    {
+        return -1;
+    }
+
 
     uint32_t u32CycCnt = (uint32_t)0UL;
     Mcb_EStatus eResult = MCB_STANDBY;
+    /** Set a new current Q setpoint */
+    float fCurrentQSP = (float)1.1f;
+    memcpy(ppRxDatPoint[1], (const void*)&fCurrentQSP, sizeof(float));
+
+    float fCurQRead = (float)0.0f;
   while (1)
   {
     /* USER CODE END WHILE */
     MX_USB_HOST_Process();
 
     /* USER CODE BEGIN 3 */
+
       /** Perform a cyclic transfer */
       Mcb_CyclicProcess(&(ptMcbInst[MCB_INST0]), &eResult);
       u32CycCnt++;
+
+      /** Copy current Q to local */
+      memcpy((void*)&fCurQRead, (const void*)ppTxDatPoint[1], sizeof(float));
       /** If previous cyclic has already finished, start a new one */
       if (eResult == MCB_READ_SUCCESS)
       {
@@ -444,17 +465,28 @@ int16_t SetMcb0CyclicMode(void)
         /** Set as Tx Map:
          *   Statusword : Key 0x011, Type unt16_t
          *   Current quadrature value : Key 0x03B, Type float */
-        Mcb_TxMap(&(ptMcbInst[MCB_INST0]), (uint16_t)0x0011, sizeof(uint16_t));
-        Mcb_TxMap(&(ptMcbInst[MCB_INST0]), (uint16_t)0x003B, sizeof(float));
+        ppTxDatPoint[0] = Mcb_TxMap(&(ptMcbInst[MCB_INST0]),
+                                    (uint16_t)0x0011, sizeof(uint16_t));
+        ppTxDatPoint[1] = Mcb_TxMap(&(ptMcbInst[MCB_INST0]),
+                                    (uint16_t)0x003B, sizeof(float));
 
         /** Set as Rx Map:
          *   Controlword : Key 0x010, Type unt16_t
          *   Current quadrature set-point : Key 0x01A, Type float */
-        Mcb_RxMap(&(ptMcbInst[MCB_INST0]), (uint16_t)0x0010, sizeof(uint16_t));
-        Mcb_RxMap(&(ptMcbInst[MCB_INST0]), (uint16_t)0x001A, sizeof(float));
+        ppRxDatPoint[0] = Mcb_RxMap(&(ptMcbInst[MCB_INST0]),
+                                    (uint16_t)0x0010, sizeof(uint16_t));
+        ppRxDatPoint[1] = Mcb_RxMap(&(ptMcbInst[MCB_INST0]),
+                                    (uint16_t)0x001A, sizeof(float));
+        for (uint8_t u8Idx = (uint8_t)0; u8Idx < MCB_TX_MAP_NMB; ++u8Idx)
+        {
+            if ((ppTxDatPoint[u8Idx] == NULL) || (ppRxDatPoint[u8Idx] == NULL))
+            {
+                i16Ret = MCB_MAPPING_ERROR;
+            }
+        }
 
-        if ((ptMcbInst[MCB_INST0].tCyclicTxList.u8Mapped != (uint8_t)2)
-            || (ptMcbInst[MCB_INST0].tCyclicRxList.u8Mapped != (uint8_t)2))
+        if ((ptMcbInst[MCB_INST0].tCyclicTxList.u8Mapped != MCB_TX_MAP_NMB)
+            || (ptMcbInst[MCB_INST0].tCyclicRxList.u8Mapped != MCB_RX_MAP_NMB))
         {
             i16Ret = MCB_MAPPING_ERROR;
         }
