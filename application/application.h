@@ -27,3 +27,6 @@ AppStart(void);
  */
 int32_t
 AppLoop(void);
+
+void
+AppCyclicProcess(void);
