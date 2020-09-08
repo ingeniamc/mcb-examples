@@ -1,6 +1,6 @@
 /**
  * @file mcb_al.c
- * @brief This file contains the adaption layer of mcb
+ * @brief This file contains the adaptation layer of MCB.
  *
  * @author  Firmware department
  * @copyright Ingenia Motion Control (c) 2020. All rights reserved.
@@ -30,7 +30,6 @@ void McbAL_Init(uint16_t u16Id)
             /* Nothing */
             break;
     }
-
 }
 
 uint8_t Mcb_IntfReadIRQ(uint16_t u16Id)

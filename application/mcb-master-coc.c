@@ -13,9 +13,11 @@
 #include "mcb_al.h"
 
 #define MCB_NMB_INST    (uint16_t)1U
-/* MCBus timeout (in ms). Set to FF's for debugging so it never timeouts */
-//#define MCB_TIMEOUT     (uint32_t)500UL
-#define MCB_TIMEOUT     (uint32_t)0xFFFFFFFFUL
+
+/* MCBus timeout (in ms).
+ * Set to FF's for debugging so it never timeouts.
+ * Set to e.g. 500 ms for real application. */
+#define MCB_TIMEOUT     (uint32_t)0xFFFFFFFFUL /* (uint32_t)500UL */
 
 /** Error codes */
 #define NO_ERROR                    (int16_t)0
@@ -25,39 +27,53 @@
 #define MCB_TX_MAP_NMB              (uint16_t)2U
 #define MCB_RX_MAP_NMB              (uint16_t)2U
 
-int16_t
+/**
+ * Sets mapping and move MCB to cyclic state.
+ *
+ * @retval NO_ERROR if all ok, error code otherwise.
+ */
+static int16_t
 SetMcb0CyclicMode(void);
 
-Mcb_TInst ptMcbInst[MCB_NMB_INST];
+/** MCBus instance */
+static Mcb_TInst ptMcbInst[MCB_NMB_INST];
 
-void* ppTxDatPoint[MCB_TX_MAP_NMB];
-void* ppRxDatPoint[MCB_RX_MAP_NMB];
+/** Cyclic data buffers */
+static void* ppTxDatPoint[MCB_TX_MAP_NMB];
+static void* ppRxDatPoint[MCB_RX_MAP_NMB];
 
-/** MCB read message */
-Mcb_TMsg tMcbMsg;
-
+/** Config message */
+static Mcb_TMsg tMcbMsg;
+/** Config over cyclic message status */
 static Mcb_EStatus eCoCResult;
 
+/** Counter of number of cyclic transactions */
 static volatile uint32_t u32CycCnt;
+
+/** Vbus local variable being read */
 static volatile uint32_t u32VBusRead;
 
 void AppInit(void)
 {
-    /** Initialize mcb instance */
+    /** Initialize MCB instance */
     McbAL_Init(MCB_INST0);
     Mcb_Init(&(ptMcbInst[MCB_INST0]), MCB_BLOCKING, MCB_INST0, false, MCB_TIMEOUT);
     HAL_Delay((uint32_t)1UL);
 
+    /** Initialize variables */
     u32CycCnt = (uint32_t)0UL;
     eCoCResult = MCB_STANDBY;
 
     u32VBusRead = (uint32_t)0UL;
+
+    HAL_GPIO_WritePin(LED_1_GPIO_Port, LED_1_Pin, GPIO_PIN_SET);
 }
 
 void AppStart(void)
 {
-    /** Construct MCB read message */
-    tMcbMsg.u16Addr = 0x6E0; /* Vendor ID */
+    /** Construct MCB read message.
+     * Address 0x6E0 is vendor ID register */
+    tMcbMsg.u16Addr = 0x6E0;
     tMcbMsg.eStatus = MCB_STANDBY;
     memset((void*)tMcbMsg.u16Data, (uint16_t)0U, (MCB_MAX_DATA_SZ * sizeof(tMcbMsg.u16Data[(uint16_t)0U])));
 
@@ -70,17 +86,22 @@ void AppStart(void)
         tMcbMsg.eStatus = MCB_STANDBY;
         memset((void*)tMcbMsg.u16Data, (uint16_t)0U, (MCB_MAX_DATA_SZ * sizeof(tMcbMsg.u16Data[(uint16_t)0U])));
         ptMcbInst[MCB_INST0].Mcb_Read(&(ptMcbInst[MCB_INST0]), &(tMcbMsg));
+
         HAL_Delay(100);
     } while (0);
 
-    /** Set mapping and move MCB to cyclic state */
+    /** Set mapping and move MCB to cyclic state.
+     * Return number can be:
+     *    -> errorcode if failed
+     *    -> cyclic size if successful */
     int16_t i16CycSt = SetMcb0CyclicMode();
 
-    if (i16CycSt == NO_ERROR)
+    if (i16CycSt > NO_ERROR)
     {
+    	/** Cyclic state has been reached successfully */
 		HAL_GPIO_WritePin(LED_2_GPIO_Port, LED_2_Pin, GPIO_PIN_SET);
 
-		/** Set a new current Q setpoint */
+		/** Set a new current Q set-point */
 		float fCurrentQSP = (float)1.1f;
 		memcpy(ppRxDatPoint[1], (const void*)&fCurrentQSP, sizeof(float));
     }
@@ -92,7 +113,7 @@ int32_t AppLoop(void)
 
     /** The config message is managed by the cyclic process function,
     *   a single config message needs a set of multiple cyclic process to
-    *   receive the config message answer.  */
+    *   receive the config message answer. */
     if ((eCoCResult == MCB_READ_SUCCESS) || (eCoCResult == MCB_STANDBY))
     {
     	/** Clear the message and send a new request */
@@ -105,7 +126,7 @@ int32_t AppLoop(void)
         eCoCResult = MCB_STANDBY;
     }
 
-    /** After several iteration disable cyclic state and finish program */
+    /** After several iterations disable cyclic state and finish program */
     if (u32CycCnt > (uint32_t)10000UL)
     {
         Mcb_DisableCyclic(ptMcbInst);
@@ -133,7 +154,7 @@ void AppCyclicProcess(void)
     }
 }
 
-int16_t SetMcb0CyclicMode(void)
+static int16_t SetMcb0CyclicMode(void)
 {
     int16_t i16Ret = NO_ERROR;
 
@@ -148,16 +169,16 @@ int16_t SetMcb0CyclicMode(void)
         Mcb_UnmapAll(&(ptMcbInst[MCB_INST0]));
 
         /** Set as Tx Map:
-         *   Statusword : Key 0x011, Type unt16_t
-         *   Bus Voltage value : Key 0x060, Type uint32_t */
+         *   Statusword : Address 0x011, Type unt16_t
+         *   Bus Voltage value : Address 0x060, Type uint32_t */
         ppTxDatPoint[0] = Mcb_TxMap(&(ptMcbInst[MCB_INST0]),
                                     (uint16_t)0x0011, sizeof(uint16_t));
         ppTxDatPoint[1] = Mcb_TxMap(&(ptMcbInst[MCB_INST0]),
                                     (uint16_t)0x0060, sizeof(uint32_t));
 
         /** Set as Rx Map:
-         *   Controlword : Key 0x010, Type unt16_t
-         *   Current quadrature set-point : Key 0x022, Type int16_t */
+         *   Controlword : Address 0x010, Type unt16_t
+         *   Current quadrature set-point : Address 0x022, Type int16_t */
         ppRxDatPoint[0] = Mcb_RxMap(&(ptMcbInst[MCB_INST0]),
                                     (uint16_t)0x0010, sizeof(uint16_t));
         ppRxDatPoint[1] = Mcb_RxMap(&(ptMcbInst[MCB_INST0]),
