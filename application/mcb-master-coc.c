@@ -13,6 +13,7 @@
 #include "mcb_al.h"
 
 #define MCB_NMB_INST    (uint16_t)1U
+/* MCBus timeout (in ms). Set to FF's for debugging so it never timeouts */
 //#define MCB_TIMEOUT     (uint32_t)500UL
 #define MCB_TIMEOUT     (uint32_t)0xFFFFFFFFUL
 
@@ -60,11 +61,14 @@ void AppStart(void)
     tMcbMsg.eStatus = MCB_STANDBY;
     memset((void*)tMcbMsg.u16Data, (uint16_t)0U, (MCB_MAX_DATA_SZ * sizeof(tMcbMsg.u16Data[(uint16_t)0U])));
 
+    /** Initial MCB config read */
     ptMcbInst[MCB_INST0].Mcb_Read(&(ptMcbInst[MCB_INST0]), &(tMcbMsg));
 
+    /** More MCB config reads */
     do
     {
         tMcbMsg.eStatus = MCB_STANDBY;
+        memset((void*)tMcbMsg.u16Data, (uint16_t)0U, (MCB_MAX_DATA_SZ * sizeof(tMcbMsg.u16Data[(uint16_t)0U])));
         ptMcbInst[MCB_INST0].Mcb_Read(&(ptMcbInst[MCB_INST0]), &(tMcbMsg));
         HAL_Delay(100);
     } while (0);
@@ -72,16 +76,14 @@ void AppStart(void)
     /** Set mapping and move MCB to cyclic state */
     int16_t i16CycSt = SetMcb0CyclicMode();
 
-    if (i16CycSt != NO_ERROR)
+    if (i16CycSt == NO_ERROR)
     {
-        return -1;
+		HAL_GPIO_WritePin(LED_2_GPIO_Port, LED_2_Pin, GPIO_PIN_SET);
+
+		/** Set a new current Q setpoint */
+		float fCurrentQSP = (float)1.1f;
+		memcpy(ppRxDatPoint[1], (const void*)&fCurrentQSP, sizeof(float));
     }
-
-    HAL_GPIO_WritePin(LED_2_GPIO_Port, LED_2_Pin, GPIO_PIN_SET);
-
-    /** Set a new current Q setpoint */
-    float fCurrentQSP = (float)1.1f;
-    memcpy(ppRxDatPoint[1], (const void*)&fCurrentQSP, sizeof(float));
 }
 
 int32_t AppLoop(void)
@@ -93,6 +95,9 @@ int32_t AppLoop(void)
     *   receive the config message answer.  */
     if ((eCoCResult == MCB_READ_SUCCESS) || (eCoCResult == MCB_STANDBY))
     {
+    	/** Clear the message and send a new request */
+    	tMcbMsg.eStatus = MCB_STANDBY;
+    	memset((void*)tMcbMsg.u16Data, (uint16_t)0U, (MCB_MAX_DATA_SZ * sizeof(tMcbMsg.u16Data[(uint16_t)0U])));
         ptMcbInst[MCB_INST0].Mcb_Read(&(ptMcbInst[MCB_INST0]), &(tMcbMsg));
     }
     else if (eCoCResult == MCB_READ_ERROR)

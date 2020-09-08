@@ -95,11 +95,12 @@ int main(void)
 
   /** Initialize output pins value */
   HAL_GPIO_WritePin(LOW_POWER_GPIO_Port, LOW_POWER_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(MCB1_CS_GPIO_Port, MCB1_CS_Pin, GPIO_PIN_SET);
   HAL_Delay(100);
 
   AppInit();
 
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(EXT_FAULT_GPIO_Port, EXT_FAULT_Pin, GPIO_PIN_SET);
 
   HAL_GPIO_WritePin(LED_1_GPIO_Port, LED_1_Pin, GPIO_PIN_SET);
 
@@ -109,6 +110,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   AppStart();
 
+  /** Start the timer used for cyclic communication */
   HAL_TIM_Base_Start(&htim2);
   HAL_TIM_Base_Start_IT(&htim2);
 

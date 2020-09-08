@@ -82,6 +82,8 @@ void Error_Handler(void);
 #define MCB1_IRQ_EXTI_IRQn EXTI9_5_IRQn
 #define MCB1_SYNC1_Pin GPIO_PIN_7
 #define MCB1_SYNC1_GPIO_Port GPIOB
+#define EXT_FAULT_Pin GPIO_PIN_8
+#define EXT_FAULT_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
