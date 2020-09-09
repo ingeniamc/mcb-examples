@@ -65,8 +65,6 @@ void AppInit(void)
     eCoCResult = MCB_STANDBY;
 
     u32VBusRead = (uint32_t)0UL;
-
-    HAL_GPIO_WritePin(LED_1_GPIO_Port, LED_1_Pin, GPIO_PIN_SET);
 }
 
 void AppStart(void)
@@ -99,8 +97,6 @@ void AppStart(void)
     if (i16CycSt > NO_ERROR)
     {
     	/** Cyclic state has been reached successfully */
-		HAL_GPIO_WritePin(LED_2_GPIO_Port, LED_2_Pin, GPIO_PIN_SET);
-
 		/** Set a new current Q set-point */
 		float fCurrentQSP = (float)1.1f;
 		memcpy(ppRxDatPoint[1], (const void*)&fCurrentQSP, sizeof(float));
@@ -131,7 +127,6 @@ int32_t AppLoop(void)
     {
         Mcb_DisableCyclic(ptMcbInst);
         u32CycCnt = (uint32_t)0UL;
-        HAL_GPIO_WritePin(LED_3_GPIO_Port, LED_3_Pin, GPIO_PIN_SET);
     }
     if (ptMcbInst[MCB_INST0].isCyclic == false)
     {
@@ -182,7 +177,8 @@ static int16_t SetMcb0CyclicMode(void)
         ppRxDatPoint[0] = Mcb_RxMap(&(ptMcbInst[MCB_INST0]),
                                     (uint16_t)0x0010, sizeof(uint16_t));
         ppRxDatPoint[1] = Mcb_RxMap(&(ptMcbInst[MCB_INST0]),
-                                    (uint16_t)0x0022, sizeof(int16_t));
+                                    (uint16_t)0x001A, sizeof(int16_t));
+
         for (uint8_t u8Idx = (uint8_t)0; u8Idx < MCB_TX_MAP_NMB; ++u8Idx)
         {
             /** Check that all the registers are correctly mapped,

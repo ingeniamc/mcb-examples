@@ -20,9 +20,9 @@ void McbAL_Init(uint16_t u16Id)
     {
         case MCB_INST0:
             /** Set Moco into reset state during instance initialization */
-            HAL_GPIO_WritePin(MOCO1_RESET_GPIO_Port, MOCO1_RESET_Pin, GPIO_PIN_VALUE_LOW);
+            HAL_GPIO_WritePin(MCB1_RESET_GPIO_Port, MCB1_RESET_Pin, GPIO_PIN_VALUE_LOW);
             HAL_Delay(100);
-            HAL_GPIO_WritePin(MOCO1_RESET_GPIO_Port, MOCO1_RESET_Pin, GPIO_PIN_VALUE_HIGH);
+            HAL_GPIO_WritePin(MCB1_RESET_GPIO_Port, MCB1_RESET_Pin, GPIO_PIN_VALUE_HIGH);
             HAL_Delay(5000);
             while (Mcb_IntfReadIRQ(u16Id) == (uint8_t)0x00);
             break;
