@@ -1,0 +1,25 @@
+FileVersion: 1.0
+ProjectType: Component
+Identification:
+    PartNumber: EVE-NET-C
+    Version: 1.7.2
+    
+Builds:
+    - Node: stm32
+      Name: mcb-example
+      Apps:
+        - MakeVersion: stm32cubeide_1.5.0
+          Workspace: workspace
+          Projects:
+            - DictFolder: common
+              DictType: coco
+              OutFile: coco
+              ID: mcb-example
+              MCU: stm32g474
+              Build:
+                - Path: bsp/mcb-master-coc-STM32F3-Discovery
+                  Name: mcb-master-coc-STM32F3-Discovery
+                  Family: stm32
+                  VersionFolder: common
+                  Config: Release
+                  Compiler: gnu-tools-for-stm32.7-2018-q2-update.linux64_1.5.0.202011040924
