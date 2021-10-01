@@ -12,7 +12,10 @@
 #include "mcb.h"
 #include "mcb_al.h"
 
+/** Number of instances of MCB */
 #define MCB_NMB_INST    (uint16_t)1U
+
+/** MCBus timeout (in ms) */
 #define MCB_TIMEOUT     (uint32_t)500UL
 
 /** Error codes */
@@ -23,13 +26,20 @@
 #define MCB_TX_MAP_NMB              (uint16_t)2U
 #define MCB_RX_MAP_NMB              (uint16_t)2U
 
-int16_t
+/**
+ * Sets mapping and move MCB to cyclic state.
+ *
+ * @retval NO_ERROR if all ok, error code otherwise.
+ */
+static int16_t
 SetMcb0CyclicMode(void);
 
+/** MCB instances */
 Mcb_TInst ptMcbInst[MCB_NMB_INST];
 
-void* ppTxDatPoint[MCB_TX_MAP_NMB];
-void* ppRxDatPoint[MCB_RX_MAP_NMB];
+/** Cyclic data buffers */
+static void* ppTxDatPoint[MCB_TX_MAP_NMB];
+static void* ppRxDatPoint[MCB_RX_MAP_NMB];
 
 /** Config over cyclic message status */
 static Mcb_EStatus eCoCResult;
@@ -56,11 +66,15 @@ void AppInit(void)
 
 void AppStart(void)
 {
-    /** Set mapping and move MCB to cyclic state */
+    /** Set mapping and move MCB to cyclic state.
+     * Return number can be:
+     *    -> errorcode if failed
+     *    -> cyclic size if successful */
     int16_t i16CycSt = SetMcb0CyclicMode();
 
     if (i16CycSt > NO_ERROR)
     {
+        /** Cyclic state has been reached successfully */
         /** Set a new current Q setpoint */
         float fCurrentQSP = (float)1.1f;
         memcpy(ppRxDatPoint[1], (const void*)&fCurrentQSP, sizeof(float));
@@ -91,7 +105,7 @@ int32_t  AppLoop(void)
     return i32Ret;
 }
 
-int16_t SetMcb0CyclicMode(void)
+static int16_t SetMcb0CyclicMode(void)
 {
     int16_t i16Ret = NO_ERROR;
 
@@ -135,6 +149,7 @@ int16_t SetMcb0CyclicMode(void)
             || (ptMcbInst[MCB_INST0].tCyclicRxList.u8Mapped != MCB_RX_MAP_NMB))
         {
             i16Ret = MCB_MAPPING_ERROR;
+            break;
         }
 
         i16Ret = Mcb_EnableCyclic(&(ptMcbInst[MCB_INST0]));

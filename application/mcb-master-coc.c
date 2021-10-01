@@ -1,6 +1,6 @@
 /**
- * @file mcb-master-cyclic.c
- * @brief This file contains application of mcb-master-cyclic project
+ * @file mcb-master-coc.c
+ * @brief This file contains application of mcb-master-coc project
  *
  * @author  Firmware department
  * @copyright Ingenia Motion Control (c) 2020. All rights reserved.
@@ -12,10 +12,11 @@
 #include "mcb.h"
 #include "mcb_al.h"
 
+/** Number of instances of MCB */
 #define MCB_NMB_INST    (uint16_t)1U
 
-/* MCBus timeout (in ms).
- * Set to FF's for debugging so it never timeouts.
+/** MCBus timeout (in ms) */
+/* Set to FF's for debugging so it never timeouts.
  * Set to e.g. 500 ms for real application. */
 #define MCB_TIMEOUT     (uint32_t)0xFFFFFFFFUL /* (uint32_t)500UL */
 
@@ -35,7 +36,7 @@
 static int16_t
 SetMcb0CyclicMode(void);
 
-/** MCBus instance */
+/** MCB instances */
 static Mcb_TInst ptMcbInst[MCB_NMB_INST];
 
 /** Cyclic data buffers */
@@ -96,10 +97,10 @@ void AppStart(void)
 
     if (i16CycSt > NO_ERROR)
     {
-    	/** Cyclic state has been reached successfully */
-		/** Set a new current Q set-point */
-		float fCurrentQSP = (float)1.1f;
-		memcpy(ppRxDatPoint[1], (const void*)&fCurrentQSP, sizeof(float));
+        /** Cyclic state has been reached successfully */
+        /** Set a new current Q set-point */
+        float fCurrentQSP = (float)1.1f;
+        memcpy(ppRxDatPoint[1], (const void*)&fCurrentQSP, sizeof(float));
     }
 }
 
@@ -112,9 +113,9 @@ int32_t AppLoop(void)
     *   receive the config message answer. */
     if ((eCoCResult == MCB_READ_SUCCESS) || (eCoCResult == MCB_STANDBY))
     {
-    	/** Clear the message and send a new request */
-    	tMcbMsg.eStatus = MCB_STANDBY;
-    	memset((void*)tMcbMsg.u16Data, (uint16_t)0U, (MCB_MAX_DATA_SZ * sizeof(tMcbMsg.u16Data[(uint16_t)0U])));
+        /** Clear the message and send a new request */
+        tMcbMsg.eStatus = MCB_STANDBY;
+        memset((void*)tMcbMsg.u16Data, (uint16_t)0U, (MCB_MAX_DATA_SZ * sizeof(tMcbMsg.u16Data[(uint16_t)0U])));
         ptMcbInst[MCB_INST0].Mcb_Read(&(ptMcbInst[MCB_INST0]), &(tMcbMsg));
     }
     else if (eCoCResult == MCB_READ_ERROR)
