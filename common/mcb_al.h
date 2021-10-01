@@ -1,6 +1,6 @@
 /**
  * @file mcb_al.h
- * @brief This file contains the adaption layer of mcb
+ * @brief This file contains the adaptation layer of MCB.
  *
  * @author  Firmware department
  * @copyright Ingenia Motion Control (c) 2020. All rights reserved.
@@ -27,7 +27,9 @@ extern SPI_HandleTypeDef hspi1;
 
 
 /**
- * Mcb adaption layer initialization
+ * Mcb adaptation layer initialization
+ *
+ * @param u16Id[in] ID of the MCB, useful when using multiple MCB instances.
  */
 void
 McbAL_Init(uint16_t u16Id);

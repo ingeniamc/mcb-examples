@@ -21,9 +21,16 @@ void
 AppStart(void);
 
 /**
- * The application loop function called periodically.
+ * The application loop function.
  *
  * @retval NO_ERROR if all ok, error code otherwise.
  */
 int32_t
 AppLoop(void);
+
+/**
+ * Executes the MCB cyclic process.
+ * It has to be called periodically.
+ */
+void
+AppCyclicProcess(void);
