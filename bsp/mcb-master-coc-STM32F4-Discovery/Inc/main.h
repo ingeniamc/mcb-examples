@@ -47,7 +47,7 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-#define MCB_INST0       (uint16_t)0U
+
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/

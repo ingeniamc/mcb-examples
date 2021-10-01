@@ -31,7 +31,7 @@
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-#define MCB_INST0       (uint16_t)0U
+
 /* USER CODE END PV */
 
 /* USER CODE BEGIN PFP */

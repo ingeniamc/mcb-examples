@@ -6,6 +6,9 @@
  * @copyright Ingenia Motion Control (c) 2020. All rights reserved.
  */
 
+#ifndef APPLICATION_H_
+#define APPLICATION_H_
+
 #include <stdint.h>
 
  /**
@@ -34,3 +37,5 @@ AppLoop(void);
  */
 void
 AppCyclicProcess(void);
+
+#endif /* APPLICATION_H_ */

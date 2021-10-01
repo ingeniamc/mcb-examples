@@ -7,13 +7,11 @@
  */
 
 #include "application.h"
+#include "registers.h"
 
 #include <string.h>
 #include "mcb.h"
 #include "mcb_al.h"
-
-/** Number of instances of MCB */
-#define MCB_NMB_INST    (uint16_t)1U
 
 /** MCBus timeout (in ms) */
 #define MCB_TIMEOUT     (uint32_t)500UL
@@ -22,8 +20,11 @@
 #define NO_ERROR                    (int16_t)0
 #define MCB_CURRENT_STATUS_ERROR    (int16_t)-1
 #define MCB_MAPPING_ERROR           (int16_t)-2
+#define EXIT_APP                    (int16_t)-100
 
+/** Number of mapped registers in TX direction */
 #define MCB_TX_MAP_NMB              (uint16_t)2U
+/** Number of mapped registers in RX direction */
 #define MCB_RX_MAP_NMB              (uint16_t)2U
 
 /**
@@ -48,7 +49,7 @@ static Mcb_EStatus eCoCResult;
 static volatile uint32_t u32CycCnt;
 
 /** Vbus local variable being read */
-static volatile uint32_t u32VBusRead;
+static volatile float fVBusRead;
 
 void AppInit(void)
 {
@@ -61,7 +62,7 @@ void AppInit(void)
     u32CycCnt = (uint32_t)0UL;
     eCoCResult = MCB_STANDBY;
 
-    u32VBusRead = (uint32_t)0UL;
+    fVBusRead = (float)0.0f;
 }
 
 void AppStart(void)
@@ -77,11 +78,11 @@ void AppStart(void)
         /** Cyclic state has been reached successfully */
         /** Set a new current Q setpoint */
         float fCurrentQSP = (float)1.1f;
-        memcpy(ppRxDatPoint[1], (const void*)&fCurrentQSP, sizeof(float));
+        memcpy(ppRxDatPoint[1], (const void*)&fCurrentQSP, sizeof(fCurrentQSP));
     }
 }
 
-int32_t  AppLoop(void)
+int32_t AppLoop(void)
 {
     int32_t i32Ret = NO_ERROR;
 
@@ -89,17 +90,18 @@ int32_t  AppLoop(void)
     Mcb_CyclicProcess(&(ptMcbInst[MCB_INST0]), &eCoCResult);
     u32CycCnt++;
 
-    /** Copy VBus variable to local */
-    memcpy((void*)&u32VBusRead, (const void*)ppTxDatPoint[1], sizeof(u32VBusRead));
+    /** Copy VBus variable from cyclic buffer to local variable */
+    memcpy((void*)&fVBusRead, (const void*)ppTxDatPoint[1], sizeof(fVBusRead));
 
     /** After several iteration disable cyclic state and finish program */
     if (u32CycCnt > (uint32_t)0xFFFFUL)
     {
         Mcb_DisableCyclic(ptMcbInst);
+        u32CycCnt = (uint32_t)0UL;
     }
     if (ptMcbInst[MCB_INST0].isCyclic == false)
     {
-        i32Ret = MCB_CURRENT_STATUS_ERROR;
+        i32Ret = EXIT_APP;
     }
 
     return i32Ret;
@@ -120,28 +122,37 @@ static int16_t SetMcb0CyclicMode(void)
         Mcb_UnmapAll(&(ptMcbInst[MCB_INST0]));
 
         /** Set as Tx Map:
-         *   Statusword : Key 0x011, Type unt16_t
-         *   Bus Voltage value : Address 0x060, Type uint32_t */
+         *   Statusword
+         *   Bus Voltage value */
         ppTxDatPoint[0] = Mcb_TxMap(&(ptMcbInst[MCB_INST0]),
-                                    (uint16_t)0x0011, sizeof(uint16_t));
+                                    REG_ADDR_STATUS_WORD, REG_SIZE_STATUS_WORD);
         ppTxDatPoint[1] = Mcb_TxMap(&(ptMcbInst[MCB_INST0]),
-                                    (uint16_t)0x0060, sizeof(float));
+                                    REG_ADDR_BUS_VOLT_VALUE, REG_SIZE_BUS_VOLT_VALUE);
 
         /** Set as Rx Map:
-         *   Controlword : Key 0x010, Type unt16_t
-         *   Current quadrature set-point : Key 0x01A, Type float */
+         *   Controlword
+         *   Current quadrature set-point */
         ppRxDatPoint[0] = Mcb_RxMap(&(ptMcbInst[MCB_INST0]),
-                                    (uint16_t)0x0010, sizeof(uint16_t));
+                                    REG_ADDR_CONTROL_WORD, REG_SIZE_CONTROL_WORD);
         ppRxDatPoint[1] = Mcb_RxMap(&(ptMcbInst[MCB_INST0]),
-                                    (uint16_t)0x001A, sizeof(float));
+                                    REG_ADDR_CURR_Q_SETPOINT, REG_SIZE_CURR_Q_SETPOINT);
 
-        for (uint8_t u8Idx = (uint8_t)0; u8Idx < MCB_TX_MAP_NMB; ++u8Idx)
+        /** Check that all the TX registers are correctly mapped */
+        for (uint8_t u8Idx = (uint8_t)0; u8Idx < MCB_TX_MAP_NMB; u8Idx++)
         {
-            /** Check that all the registers are correctly mapped,
-             *  otherwise return an error. */
-            if ((ppTxDatPoint[u8Idx] == NULL) || (ppRxDatPoint[u8Idx] == NULL))
+            if (ppTxDatPoint[u8Idx] == NULL)
             {
                 i16Ret = MCB_MAPPING_ERROR;
+                break;
+            }
+        }
+        /** Check that all the RX registers are correctly mapped */
+        for (uint8_t u8Idx = (uint8_t)0; u8Idx < MCB_RX_MAP_NMB; u8Idx++)
+        {
+            if (ppRxDatPoint[u8Idx] == NULL)
+            {
+                i16Ret = MCB_MAPPING_ERROR;
+                break;
             }
         }
 
