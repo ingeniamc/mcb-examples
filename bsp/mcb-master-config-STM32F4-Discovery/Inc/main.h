@@ -76,6 +76,7 @@ void Error_Handler(void);
 #define B1_GPIO_Port GPIOA
 #define MCB1_IRQ_Pin GPIO_PIN_1
 #define MCB1_IRQ_GPIO_Port GPIOA
+#define MCB1_IRQ_EXTI_IRQn EXTI1_IRQn
 #define MCB1_SYNC1_Pin GPIO_PIN_2
 #define MCB1_SYNC1_GPIO_Port GPIOA
 #define I2S3_WS_Pin GPIO_PIN_4
