@@ -14,7 +14,7 @@
 #include "mcb_al.h"
 
 /** MCBus timeout (in ms) */
-#define MCB_TIMEOUT     (uint32_t)500UL
+#define MCB_TIMEOUT                 (uint32_t)500UL
 
 /** Error codes */
 #define NO_ERROR                    (int16_t)0
@@ -22,10 +22,28 @@
 #define MCB_MAPPING_ERROR           (int16_t)-2
 #define EXIT_APP                    (int16_t)-100
 
-/** Number of mapped registers in TX direction */
-#define MCB_TX_MAP_NMB              (uint16_t)2U
+/** Blinking time, in ms */
+#define LED_BLINK_MS                (uint32_t)250UL
+
 /** Number of mapped registers in RX direction */
-#define MCB_RX_MAP_NMB              (uint16_t)2U
+#define MCB_CYC_RX_NUM              (uint16_t)2U
+/** Number of mapped registers in TX direction */
+#define MCB_CYC_TX_NUM              (uint16_t)2U
+
+#define MCB_CYC_RX_SLOT0            0
+#define MCB_CYC_RX_SLOT1            1
+#define MCB_CYC_TX_SLOT0            0
+#define MCB_CYC_TX_SLOT1            1
+
+#define MCB_CYC_RX_IDX_CONTROL_WORD MCB_CYC_RX_SLOT0
+#define MCB_CYC_RX_IDX_CURR_Q_SP    MCB_CYC_RX_SLOT1
+#define MCB_CYC_TX_IDX_STATUS_WORD  MCB_CYC_TX_SLOT0
+#define MCB_CYC_TX_IDX_V_BUS        MCB_CYC_TX_SLOT1
+
+
+/** LED blinking process */
+static void
+LEDProcess(void);
 
 /**
  * Sets mapping and move MCB to cyclic state.
@@ -36,11 +54,14 @@ static int16_t
 SetMcb0CyclicMode(void);
 
 /** MCB instances */
-Mcb_TInst ptMcbInst[MCB_NMB_INST];
+static Mcb_TInst ptMcbInst[MCB_NMB_INST];
 
 /** Cyclic data buffers */
-static void* ppTxDatPoint[MCB_TX_MAP_NMB];
-static void* ppRxDatPoint[MCB_RX_MAP_NMB];
+static void* ppRxDataPoint[MCB_CYC_RX_NUM];
+static void* ppTxDataPoint[MCB_CYC_TX_NUM];
+
+/** Config message */
+static Mcb_TMsg tMcbMsg;
 
 /** Config over cyclic message status */
 static Mcb_EStatus eCoCResult;
@@ -63,6 +84,8 @@ void AppInit(void)
     eCoCResult = MCB_STANDBY;
 
     fVBusRead = (float)0.0f;
+
+    HAL_GPIO_WritePin(LD3_GPIO_Port, LD3_Pin, GPIO_PIN_VALUE_HIGH);
 }
 
 void AppStart(void)
@@ -76,9 +99,12 @@ void AppStart(void)
     if (i16CycSt > NO_ERROR)
     {
         /** Cyclic state has been reached successfully */
-        /** Set a new current Q setpoint */
-        float fCurrentQSP = (float)1.1f;
-        memcpy(ppRxDatPoint[1], (const void*)&fCurrentQSP, sizeof(fCurrentQSP));
+        HAL_GPIO_WritePin(LD4_GPIO_Port, LD4_Pin, GPIO_PIN_VALUE_HIGH);
+
+        /** Set a new current Q set-point */
+        float fCurrentQSP = (float)1.25f;
+        memcpy(ppRxDataPoint[MCB_CYC_RX_IDX_CURR_Q_SP], (const void*)&fCurrentQSP,
+                sizeof(fCurrentQSP));
     }
 }
 
@@ -91,10 +117,13 @@ int32_t AppLoop(void)
     u32CycCnt++;
 
     /** Copy VBus variable from cyclic buffer to local variable */
-    memcpy((void*)&fVBusRead, (const void*)ppTxDatPoint[1], sizeof(fVBusRead));
+    memcpy((void*)&fVBusRead, (const void*)ppTxDataPoint[MCB_CYC_TX_IDX_V_BUS],
+            sizeof(fVBusRead));
+
+    LEDProcess();
 
     /** After several iteration disable cyclic state and finish program */
-    if (u32CycCnt > (uint32_t)0xFFFFUL)
+    if (u32CycCnt > (uint32_t)10000UL)
     {
         Mcb_DisableCyclic(ptMcbInst);
         u32CycCnt = (uint32_t)0UL;
@@ -102,6 +131,14 @@ int32_t AppLoop(void)
     if (ptMcbInst[MCB_INST0].isCyclic == false)
     {
         i32Ret = EXIT_APP;
+
+        /** Construct MCB read message */
+        tMcbMsg.u16Addr = REG_ADDR_SW_VERSION;
+        tMcbMsg.eStatus = MCB_STANDBY;
+        memset((void*)tMcbMsg.u16Data, (uint16_t)0U, (MCB_MAX_DATA_SZ * sizeof(tMcbMsg.u16Data[(uint16_t)0U])));
+        ptMcbInst[MCB_INST0].Mcb_Read(&(ptMcbInst[MCB_INST0]), &(tMcbMsg));
+
+        HAL_GPIO_WritePin(LD5_GPIO_Port, LD5_Pin, GPIO_PIN_VALUE_HIGH);
     }
 
     return i32Ret;
@@ -124,40 +161,40 @@ static int16_t SetMcb0CyclicMode(void)
         /** Set as Tx Map:
          *   Statusword
          *   Bus Voltage value */
-        ppTxDatPoint[0] = Mcb_TxMap(&(ptMcbInst[MCB_INST0]),
+        ppTxDataPoint[MCB_CYC_TX_IDX_STATUS_WORD] = Mcb_TxMap(&(ptMcbInst[MCB_INST0]),
                                     REG_ADDR_STATUS_WORD, REG_SIZE_STATUS_WORD);
-        ppTxDatPoint[1] = Mcb_TxMap(&(ptMcbInst[MCB_INST0]),
+        ppTxDataPoint[MCB_CYC_TX_IDX_V_BUS] = Mcb_TxMap(&(ptMcbInst[MCB_INST0]),
                                     REG_ADDR_BUS_VOLT_VALUE, REG_SIZE_BUS_VOLT_VALUE);
 
         /** Set as Rx Map:
          *   Controlword
          *   Current quadrature set-point */
-        ppRxDatPoint[0] = Mcb_RxMap(&(ptMcbInst[MCB_INST0]),
+        ppRxDataPoint[MCB_CYC_RX_IDX_CONTROL_WORD] = Mcb_RxMap(&(ptMcbInst[MCB_INST0]),
                                     REG_ADDR_CONTROL_WORD, REG_SIZE_CONTROL_WORD);
-        ppRxDatPoint[1] = Mcb_RxMap(&(ptMcbInst[MCB_INST0]),
+        ppRxDataPoint[MCB_CYC_RX_IDX_CURR_Q_SP] = Mcb_RxMap(&(ptMcbInst[MCB_INST0]),
                                     REG_ADDR_CURR_Q_SETPOINT, REG_SIZE_CURR_Q_SETPOINT);
 
         /** Check that all the TX registers are correctly mapped */
-        for (uint8_t u8Idx = (uint8_t)0; u8Idx < MCB_TX_MAP_NMB; u8Idx++)
+        for (uint8_t u8Idx = (uint8_t)0; u8Idx < MCB_CYC_TX_NUM; u8Idx++)
         {
-            if (ppTxDatPoint[u8Idx] == NULL)
+            if (ppTxDataPoint[u8Idx] == NULL)
             {
                 i16Ret = MCB_MAPPING_ERROR;
                 break;
             }
         }
         /** Check that all the RX registers are correctly mapped */
-        for (uint8_t u8Idx = (uint8_t)0; u8Idx < MCB_RX_MAP_NMB; u8Idx++)
+        for (uint8_t u8Idx = (uint8_t)0; u8Idx < MCB_CYC_RX_NUM; u8Idx++)
         {
-            if (ppRxDatPoint[u8Idx] == NULL)
+            if (ppRxDataPoint[u8Idx] == NULL)
             {
                 i16Ret = MCB_MAPPING_ERROR;
                 break;
             }
         }
 
-        if ((ptMcbInst[MCB_INST0].tCyclicTxList.u8Mapped != MCB_TX_MAP_NMB)
-            || (ptMcbInst[MCB_INST0].tCyclicRxList.u8Mapped != MCB_RX_MAP_NMB))
+        if ((ptMcbInst[MCB_INST0].tCyclicTxList.u8Mapped != MCB_CYC_TX_NUM)
+            || (ptMcbInst[MCB_INST0].tCyclicRxList.u8Mapped != MCB_CYC_RX_NUM))
         {
             i16Ret = MCB_MAPPING_ERROR;
             break;
@@ -168,4 +205,15 @@ static int16_t SetMcb0CyclicMode(void)
     } while (false);
 
     return i16Ret;
+}
+
+static void LEDProcess(void)
+{
+    static uint32_t u32LastBlinkTime = (uint32_t)0UL;
+
+    if ((HAL_GetTick() - u32LastBlinkTime) > LED_BLINK_MS)
+    {
+        HAL_GPIO_WritePin(LD6_GPIO_Port, LD6_Pin, !HAL_GPIO_ReadPin(LD6_GPIO_Port, LD6_Pin));
+        u32LastBlinkTime = HAL_GetTick();
+    }
 }
