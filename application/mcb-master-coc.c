@@ -66,6 +66,8 @@ static Mcb_TMsg tMcbMsg;
 
 /** Config over cyclic message status */
 static Mcb_EStatus eCoCResult;
+/** Config over cyclic flag to arbitrate between cyclic task and application */
+static volatile bool bCoCIdle;
 
 /** Counter of number of cyclic transactions */
 static volatile uint32_t u32CycCnt;
@@ -83,6 +85,7 @@ void AppInit(void)
     /** Initialize variables */
     u32CycCnt = (uint32_t)0UL;
     eCoCResult = MCB_STANDBY;
+    bCoCIdle = true;
 
     fVBusRead = (float)0.0f;
 
@@ -132,17 +135,15 @@ int32_t AppLoop(void)
     /** The config message is managed by the cyclic process function,
     *   a single config message needs a set of multiple cyclic process to
     *   receive the config message answer. */
-    if ((eCoCResult == MCB_READ_SUCCESS) || (eCoCResult == MCB_STANDBY))
+    if (bCoCIdle != false)
     {
+        bCoCIdle = false;
+
         /** Clear the message and send a new request */
         tMcbMsg.u16Addr = REG_ADDR_VENDOR_ID;
         tMcbMsg.eStatus = MCB_STANDBY;
         memset((void*)tMcbMsg.u16Data, (uint16_t)0U, (MCB_MAX_DATA_SZ * sizeof(tMcbMsg.u16Data[(uint16_t)0U])));
         ptMcbInst[MCB_INST0].Mcb_Read(&(ptMcbInst[MCB_INST0]), &(tMcbMsg));
-    }
-    else if (eCoCResult == MCB_READ_ERROR)
-    {
-        eCoCResult = MCB_STANDBY;
     }
 
     LEDProcess();
@@ -171,15 +172,21 @@ int32_t AppLoop(void)
 
 void AppCyclicProcess(void)
 {
-    if (ptMcbInst[MCB_INST0].isCyclic != false)
+    /** Perform a cyclic transfer */
+    bool bTransferDone = Mcb_CyclicProcessLatch(&(ptMcbInst[MCB_INST0]), &eCoCResult);
+    if (bTransferDone != false)
     {
-        /** Perform a cyclic transfer */
-        Mcb_CyclicProcess(&(ptMcbInst[MCB_INST0]), &eCoCResult);
         u32CycCnt++;
+        Mcb_CyclicFrameProcess(&(ptMcbInst[MCB_INST0]));
 
         /** Copy VBus variable from cyclic buffer to local variable */
         memcpy((void*)&fVBusRead, (const void*)ppTxDataPoint[MCB_CYC_TX_IDX_V_BUS],
                 sizeof(fVBusRead));
+
+        if ((eCoCResult == MCB_READ_SUCCESS) || (eCoCResult == MCB_READ_ERROR))
+        {
+            bCoCIdle = true;
+        }
     }
 }
 

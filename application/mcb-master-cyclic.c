@@ -113,8 +113,12 @@ int32_t AppLoop(void)
     int32_t i32Ret = NO_ERROR;
 
     /** Perform a cyclic transfer */
-    Mcb_CyclicProcess(&(ptMcbInst[MCB_INST0]), &eCoCResult);
-    u32CycCnt++;
+    bool bTransferDone = Mcb_CyclicProcessLatch(&(ptMcbInst[MCB_INST0]), &eCoCResult);
+    if (bTransferDone != false)
+    {
+        u32CycCnt++;
+        Mcb_CyclicFrameProcess(&(ptMcbInst[MCB_INST0]));
+    }
 
     /** Copy VBus variable from cyclic buffer to local variable */
     memcpy((void*)&fVBusRead, (const void*)ppTxDataPoint[MCB_CYC_TX_IDX_V_BUS],
