@@ -63,14 +63,16 @@ void Mcb_IntfSPITransfer(uint16_t u16Id, uint16_t* pu16In,
     switch (u16Id)
     {
         case MCB_INST0:
-#if defined (MCB1_CS_GPIO_Port)
+#if defined(MCB1_CS_GPIO_Port)
             HAL_GPIO_WritePin(MCB1_CS_GPIO_Port, MCB1_CS_Pin, GPIO_PIN_VALUE_LOW);
-#endif
-            HAL_SPI_TransmitReceive(&tSpiInst1, (uint8_t*)pu16In,
+#endif /* defined(MCB1_CS_GPIO_Port) */
+
+            HAL_SPI_TransmitReceive(&tMCBSpiInst, (uint8_t*)pu16In,
                                     (uint8_t*)pu16Out, u16Sz, SPI_TRANSMISSION_TIMEOUT);
-#if defined (MCB1_CS_GPIO_Port)
+
+#if defined(MCB1_CS_GPIO_Port)
             HAL_GPIO_WritePin(MCB1_CS_GPIO_Port, MCB1_CS_Pin, GPIO_PIN_VALUE_HIGH);
-#endif
+#endif /* defined(MCB1_CS_GPIO_Port) */
             break;
         default:
             /* Nothing */
@@ -90,9 +92,13 @@ bool Mcb_IntfCheckCrc(uint16_t u16Id, const uint16_t* pu16Buf, uint16_t u16Sz)
     switch (u16Id)
     {
         case MCB_INST0:
-            bCrc = !(HAL_SPI_GetError(&tSpiInst1) == HAL_SPI_ERROR_CRC);
+            bCrc = !(HAL_SPI_GetError(&tMCBSpiInst) == HAL_SPI_ERROR_CRC);
+            break;
+        default:
+            /* Nothing */
             break;
     }
+
     return bCrc;
 }
 
@@ -109,7 +115,7 @@ bool Mcb_IntfIsReady(uint16_t u16Id)
     switch (u16Id)
     {
         case MCB_INST0:
-            isReady = (tSpiInst1.State == HAL_SPI_STATE_READY);
+            isReady = (tMCBSpiInst.State == HAL_SPI_STATE_READY);
             break;
         default:
             /* Nothing */
@@ -117,4 +123,3 @@ bool Mcb_IntfIsReady(uint16_t u16Id)
     }
     return isReady;
 }
-
